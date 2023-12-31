@@ -1,5 +1,5 @@
 # FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel
+FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-devel
 RUN apt-get update && apt-get upgrade -y 
 RUN apt-get install git curl numactl wget -y 
 
@@ -11,12 +11,12 @@ RUN apt-get install git curl numactl wget -y
 # RUN chmod -R 777 /root
 
 ARG USERNAME=user-name-goes-here
-ARG USER_UID=1001
+ARG USER_UID=1000
 ARG USER_GID=$USER_UID
 
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
-    &&  useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     #
     # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
     && apt-get update \
@@ -30,7 +30,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
-RUN echo -e "\nexport PATH=$PATH:/home/user-name-goes-here/.local/bin\n" >>  /home/user-name-goes-here/.bashrc && sudo chown -R $USERNAME /opt/conda
-# I don't know how to do this correct and more stable
+# RUN echo -e "\nexport PATH=$PATH:/home/user-name-goes-here/.local/bin\n" >>  /home/user-name-goes-here/.bashrc && sudo chown -R $USERNAME /opt/conda
 RUN pip install ipykernel
 WORKDIR /code
