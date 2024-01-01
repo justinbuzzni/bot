@@ -12,3 +12,4 @@ vllm==0.2.6
 librosa==0.10.1
 ipywidgets==8.1.1
 gradio==4.12.0
+omegaconf==2.3.0
