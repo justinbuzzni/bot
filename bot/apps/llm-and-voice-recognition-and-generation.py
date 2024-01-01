@@ -3,8 +3,12 @@ import gradio as gr
 import numpy as np
 from functools import partial
 import requests
-from bot.speech_recognition import SpeechRecognitionV1
-from bot.speech_generation import SpeechGenerationV1
+from bot.speech_recognition import (
+    SpeechRecognition,
+    SpeechRecognitionV1,
+    SpeechRecognitionV2,
+)
+from bot.speech_generation import SpeechGeneration, SpeechGenerationV1
 from bot.text_generation import llm_chat_v1
 from fastapi import FastAPI
 
@@ -13,29 +17,25 @@ CUSTOM_PATH = "/"
 app = FastAPI()
 
 
-# @app.get("/")
-# def read_main():
-#     return {"message": "This is your main app"}
-
-
 def transcribe_v1(
     audio,
-    speech_recognition: SpeechRecognitionV1 = None,
-    speech_generation=None,
+    speech_recognition: SpeechRecognition = None,
+    speech_generation: SpeechGeneration = None,
 ):
     sr, y = audio
     y = y.astype(np.float32)
     y /= np.max(np.abs(y))
     sample = {"sampling_rate": sr, "y": y}
     print(sample)
-    speech_text = speech_recognition(
+    speech_text = speech_recognition.generate(
         sampling_rate=sr,
         y=y,
     )
     llm_response = llm_chat_v1(user_text=speech_text)
-    sample_rate, generated_audio = speech_generation(
+    speech_gen = speech_generation.generate(
         text=llm_response,
     )
+    sample_rate, generated_audio = speech_gen
 
     return [
         gr.Markdown(
@@ -49,7 +49,8 @@ def transcribe_v1(
 
 
 # if __name__ == "__main__":
-stt_model = SpeechRecognitionV1()
+# stt_model = SpeechRecognitionV1()
+stt_model = SpeechRecognitionV2()
 tts_model = SpeechGenerationV1()
 
 

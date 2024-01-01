@@ -1,8 +1,19 @@
 import numpy as np
 import torch
+from abc import ABC, abstractmethod
 
 
-class SpeechGenerationV1:
+class SpeechGeneration(ABC):
+    @abstractmethod
+    def load(self):
+        pass
+
+    @abstractmethod
+    def generate(self, text=None, sample_rate=48000) -> (int, np.array):
+        pass
+
+
+class SpeechGenerationV1(SpeechGeneration):
     """
     Использую дефолтный пример из https://github.com/snakers4/silero-models
     """
@@ -27,7 +38,7 @@ class SpeechGenerationV1:
 
         self.model = model_tts
 
-    def __call__(self, text=None, sample_rate=48000) -> (int, np.array):
+    def generate(self, text=None, sample_rate=48000) -> (int, np.array):
         speaker = "xenia"
         put_accent = True
         put_yo = False
