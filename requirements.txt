@@ -10,3 +10,5 @@ markdownify==0.11.6
 flash-attn==2.4.2
 vllm==0.2.6
 librosa==0.10.1
+ipywidgets==8.1.1
+gradio==4.12.0
