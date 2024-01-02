@@ -11,5 +11,10 @@ flash-attn==2.4.2
 vllm==0.2.6
 librosa==0.10.1
 ipywidgets==8.1.1
-gradio==4.12.0
+# gradio==4.12.0
 omegaconf==2.3.0
+git+https://github.com/m-bain/whisperx.git@06e30b2a2590bdf093a5aa40699ef71c174916e1
+pydantic==2.5.3
+torchaudio==2.1.2
+torchvision==0.16.2
+flash-attn==2.4.2

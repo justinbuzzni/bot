@@ -1,1 +1,1 @@
-uvicorn bot.apps.llm-and-voice-recognition-and-generation:demo --port 7860
+uvicorn bot.apps.llm-and-voice-recognition-and-generation:demo --port 7860 --host 0.0.0.0

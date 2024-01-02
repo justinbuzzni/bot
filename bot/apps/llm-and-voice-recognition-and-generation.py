@@ -1,3 +1,4 @@
+# python3 -m vllm.entrypoints.api_server --model TheBloke/openchat-3.5-1210-AWQ --quantization awq --dtype auto
 import torch
 import gradio as gr
 import numpy as np

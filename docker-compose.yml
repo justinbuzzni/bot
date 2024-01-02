@@ -10,3 +10,5 @@ services:
     volumes:
       - ./:/code:cached
       - ~/.cache/huggingface/:/root/.cache/huggingface/
+    ports:
+      - "7860:7860"
