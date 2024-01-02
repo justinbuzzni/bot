@@ -7,7 +7,7 @@ def llm_chat_v1(user_text=None):
         "http://localhost:8000/generate",
         json={
             "prompt": initial_prompt,
-            "temperature": 0.5,
+            "temperature": 0.2,
             "max_tokens": 1024,
         },
     ).json()["text"][0]

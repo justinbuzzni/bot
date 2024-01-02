@@ -9,9 +9,14 @@ from bot.speech_recognition import (
     SpeechRecognitionV1,
     SpeechRecognitionV2,
 )
-from bot.speech_generation import SpeechGeneration, SpeechGenerationV1
+from bot.speech_generation import (
+    SpeechGeneration,
+    SpeechGenerationV1,
+    SpeechGenerationV2,
+)
 from bot.text_generation import llm_chat_v1
 from fastapi import FastAPI
+import nltk
 
 CUSTOM_PATH = "/"
 
@@ -37,7 +42,7 @@ def transcribe_v1(
         text=llm_response,
     )
     sample_rate, generated_audio = speech_gen
-
+    # audio =
     return [
         gr.Markdown(
             f"**Распознанная речь:**\n{speech_text}\n\n**Сгенерированный ответ:**\n{llm_response}"
@@ -52,7 +57,8 @@ def transcribe_v1(
 # if __name__ == "__main__":
 # stt_model = SpeechRecognitionV1()
 stt_model = SpeechRecognitionV2()
-tts_model = SpeechGenerationV1()
+# tts_model = SpeechGenerationV1()
+tts_model = SpeechGenerationV2()
 
 
 markdown = gr.Markdown()
