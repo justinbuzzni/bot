@@ -3,12 +3,8 @@ FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-devel
 RUN apt-get update && apt-get upgrade -y 
 RUN apt-get install git htop curl numactl wget -y 
 
-# FROM anibali/pytorch:2.0.1-cuda11.8-ubuntu22.04
-# RUN sudo apt-get update && sudo apt-get upgrade -y 
-# RUN sudo apt-get install git curl build-essential -y
-
-
-# RUN chmod -R 777 /root
+# for aiortc support  
+RUN apt-get install libavdevice-dev libavfilter-dev libopus-dev libvpx-dev pkg-config -y
 
 ARG USERNAME=user-name-goes-here
 ARG USER_UID=1000

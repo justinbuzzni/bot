@@ -16,7 +16,6 @@ from bot.speech_generation import (
 )
 from bot.text_generation import llm_chat_v1
 from fastapi import FastAPI
-import nltk
 
 CUSTOM_PATH = "/"
 
