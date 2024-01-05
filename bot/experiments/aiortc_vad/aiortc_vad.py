@@ -11,6 +11,10 @@ from aiohttp import web
 from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder, MediaRelay
 from av import VideoFrame
+import av
+import torch
+import librosa
+import numpy as np
 
 ROOT = os.path.dirname(__file__)
 
@@ -22,15 +26,69 @@ relay = MediaRelay()
 class AudioTrack(MediaStreamTrack):
     kind = "audio"
 
-    def __init__(self, track):
+    def __init__(
+        self,
+        track,
+        model,
+        utils,
+    ):
         super().__init__()  # don't forget this!
         self.track = track
+        self.vad_model = model
+        (
+            get_speech_timestamps,
+            save_audio,
+            read_audio,
+            VADIterator,
+            collect_chunks,
+        ) = utils
+        self.get_speech_timestamps = get_speech_timestamps
+        self.save_audio = save_audio
+        self.read_audio = read_audio
+        self.VADIterator = VADIterator
+        self.collect_chunks = collect_chunks
+
+        self.sampling_rate = 16_000
+        self.resampler = av.AudioResampler(
+            format="s16",
+            layout="mono",
+            rate=self.sampling_rate,
+        )
+        print(self.resampler)
+        self.buffer = torch.tensor([], dtype=torch.float32)
 
     async def recv(self):
         frame = await self.track.recv()
+        frame = self.resampler.resample(frame)[0]
         frame_array = frame.to_ndarray()
-        # print("-")
-        print(frame_array, frame_array.shape)
+        frame_array = frame_array[0].astype(np.float32)
+
+        # s16 (signed integer 16-bit number) can store numbers in range -32 768...32 767.
+        frame_array = torch.tensor(frame_array, dtype=torch.float32) / 32_767
+        speech_prob = None
+        if self.buffer.shape[0] < 304 * 2:
+            self.buffer = torch.cat(
+                [
+                    self.buffer,
+                    frame_array,
+                ]
+            )
+        else:
+            # print(self.buffer.shape)
+            speech_prob = self.vad_model(
+                self.buffer,
+                self.sampling_rate,
+            ).item()
+
+            self.buffer = frame_array
+
+        if not speech_prob is None:
+            if speech_prob > 0.5:
+                print(
+                    # self.buffer.shape,
+                    f"speech_prob={speech_prob}",
+                )
+
         return frame
 
 
@@ -82,10 +140,18 @@ async def offer(request):
         log_info("Track %s received", track.kind)
 
         if track.kind == "audio":
+            model, utils = torch.hub.load(
+                repo_or_dir="snakers4/silero-vad",
+                model="silero_vad",
+                force_reload=False,
+                onnx=True,
+            )
             audio_track = AudioTrack(
                 relay.subscribe(
                     track=track,
-                )
+                ),
+                model=model,
+                utils=utils,
             )
             recorder.addTrack(audio_track)
 

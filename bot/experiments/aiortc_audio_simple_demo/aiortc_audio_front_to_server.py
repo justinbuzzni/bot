@@ -61,7 +61,10 @@ async def offer(request):
     log_info("Created for %s", request.remote)
 
     # prepare local media
-    recorder = MediaBlackhole()
+    if args.record_to:
+        recorder = MediaRecorder(args.record_to)
+    else:
+        recorder = MediaBlackhole()
 
     @pc.on("datachannel")
     def on_datachannel(channel):
