@@ -6,19 +6,64 @@ var dc = null,
   dcInterval = null;
 
 function createPeerConnection() {
-  pc = new RTCPeerConnection({
-    sdpSemantics: "unified-plan",
-  });
+  pc = new RTCPeerConnection();
+  console.log("new RTCPeerConnection", pc);
 
-  pc.addEventListener("icegatheringstatechange", function () {}, false);
+  pc.addEventListener(
+    "icegatheringstatechange",
+    function (event) {
+      console.log("icegatheringstatechange", event);
+    },
+    false
+  );
 
-  pc.addEventListener("iceconnectionstatechange", function () {}, false);
+  pc.addEventListener(
+    "iceconnectionstatechange",
+    function (event) {
+      console.log("iceconnectionstatechange", event);
+    },
+    false
+  );
 
-  pc.addEventListener("signalingstatechange", function () {}, false);
+  pc.addEventListener(
+    "signalingstatechange",
+    function (event) {
+      console.log("signalingstatechange", event);
+    },
+    false
+  );
 
   // connect audio / video
+  // когда происходит событие track, мы получаем объект
+  /**
+   RTCTrackEvent {isTrusted: true, receiver: RTCRtpReceiver, track: MediaStreamTrack, streams: Array(1), transceiver: RTCRtpTransceiver, …}
+      isTrusted: true
+      bubbles: false
+      cancelBubble: false
+      cancelable: false
+      composed: false
+      currentTarget: RTCPeerConnection {localDescription: RTCSessionDescription, currentLocalDescription: RTCSessionDescription, pendingLocalDescription: null, remoteDescription: RTCSessionDescription, currentRemoteDescription: RTCSessionDescription, …}
+      defaultPrevented: false
+      eventPhase: 0
+      receiver: RTCRtpReceiver {track: MediaStreamTrack, transport: RTCDtlsTransport, rtcpTransport: null, playoutDelayHint: null}
+      returnValue: true
+      srcElement: RTCPeerConnection {localDescription: RTCSessionDescription, currentLocalDescription: RTCSessionDescription, pendingLocalDescription: null, remoteDescription: RTCSessionDescription, currentRemoteDescription: RTCSessionDescription, …}
+      streams:Array(1)
+        0: ==== ВОТ ТУТ НАШ СТРИМ ==== 
+          MediaStream {id: '74d9539e-72d0-4c6f-910c-c1aa69945245', active: false, onaddtrack: null, onremovetrack: null, onactive: null, …}
+        length: 1
+      target: RTCPeerConnection {localDescription: RTCSessionDescription, currentLocalDescription: RTCSessionDescription, pendingLocalDescription: null, remoteDescription: RTCSessionDescription, currentRemoteDescription: RTCSessionDescription, …}
+      timeStamp: 2296.899999976158
+      track: MediaStreamTrack {kind: 'audio', id: '87781a53-b325-413b-ac55-0dfa9f631b68', label: '87781a53-b325-413b-ac55-0dfa9f631b68', enabled: true, muted: false, …}
+      transceiver: RTCRtpTransceiver {mid: null, sender: RTCRtpSender, receiver: RTCRtpReceiver, stopped: true, direction: 'stopped', …}
+      type: "track"
+      RTCTrackEvent
+   */
+  // в этом объекте содержится стрим, который мы можем назначить в audio
+  // и аудио будет воспроизводить данный поток
   pc.addEventListener("track", function (evt) {
     document.getElementById("audio").srcObject = evt.streams[0];
+    console.log("pc.addEventListener(track", evt);
   });
 
   return pc;
@@ -49,6 +94,7 @@ function negotiate() {
     .then(function () {
       var offer = pc.localDescription;
 
+      // отправка SDP
       return fetch("/offer", {
         body: JSON.stringify({
           sdp: offer.sdp,
@@ -74,7 +120,7 @@ function negotiate() {
 
 function start() {
   document.getElementById("start").style.display = "none";
-
+  // создаем соединение
   pc = createPeerConnection();
 
   var time_start = null;
@@ -90,8 +136,10 @@ function start() {
 
   var parameters = { ordered: true };
 
+  // создает data channel
   dc = pc.createDataChannel("chat", parameters);
   dc.onclose = function () {
+    console.log("dc.onclose");
     clearInterval(dcInterval);
   };
 
@@ -99,11 +147,11 @@ function start() {
     dcInterval = setInterval(function () {
       var message = "ping " + current_stamp();
       console.log(message);
-      dc.send(message);
+      dc.send("dc.onopen", message);
     }, 1000);
   };
   dc.onmessage = function (evt) {
-    console.log(evt);
+    console.log("dc.onmessage", evt);
   };
 
   var constraints = {
@@ -115,6 +163,7 @@ function start() {
     navigator.mediaDevices.getUserMedia(constraints).then(
       function (stream) {
         stream.getTracks().forEach(function (track) {
+          console.log(track);
           pc.addTrack(track, stream);
         });
         return negotiate();

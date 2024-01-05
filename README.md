@@ -8,6 +8,7 @@
 - [ ] добавить Voice Activity Detector (вероятно Silero VAD)
 - [ ] подключить простой чатовый UI
 - [ ] ускорить whisper
+- [ ] настроить свой TURN сервер, чтобы не полагаться на google и другие сервера. https://github.com/coturn/coturn
 
 ### Useful links
 
@@ -16,3 +17,4 @@
 - https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=runfile_local
 - https://stackoverflow.com/questions/43022843/nvidia-nvml-driver-library-version-mismatch#comment73133147_43022843
 - https://diart.readthedocs.io/en/latest/
+- https://www.dmosk.ru/miniinstruktions.php?mini=coturn

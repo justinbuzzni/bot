@@ -19,6 +19,21 @@ pcs = set()
 relay = MediaRelay()
 
 
+class AudioTrack(MediaStreamTrack):
+    kind = "audio"
+
+    def __init__(self, track):
+        super().__init__()  # don't forget this!
+        self.track = track
+
+    async def recv(self):
+        frame = await self.track.recv()
+        frame_array = frame.to_ndarray()
+        print("-")
+        print(frame_array)
+        return frame
+
+
 async def index(request):
     content = open(os.path.join(ROOT, "index.html"), "r").read()
     return web.Response(content_type="text/html", text=content)
@@ -46,11 +61,7 @@ async def offer(request):
     log_info("Created for %s", request.remote)
 
     # prepare local media
-    player = MediaPlayer(os.path.join(ROOT, "demo-instruct.wav"))
-    if args.record_to:
-        recorder = MediaRecorder(args.record_to)
-    else:
-        recorder = MediaBlackhole()
+    recorder = MediaBlackhole()
 
     @pc.on("datachannel")
     def on_datachannel(channel):
@@ -71,8 +82,12 @@ async def offer(request):
         log_info("Track %s received", track.kind)
 
         if track.kind == "audio":
-            pc.addTrack(player.audio)
-            recorder.addTrack(track)
+            audio_track = AudioTrack(
+                relay.subscribe(
+                    track=track,
+                )
+            )
+            recorder.addTrack(audio_track)
 
         @track.on("ended")
         async def on_ended():
