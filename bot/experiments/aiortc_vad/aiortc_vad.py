@@ -21,6 +21,7 @@ ROOT = os.path.dirname(__file__)
 logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
+import time
 
 
 class AudioTrack(MediaStreamTrack):
@@ -57,6 +58,12 @@ class AudioTrack(MediaStreamTrack):
         print(self.resampler)
         self.buffer = torch.tensor([], dtype=torch.float32)
 
+        self.segments = []
+        self.segments_amount = 100
+        self.is_activated = False
+        self.is_activated_threshhold = 5
+        self.is_activated_amount = 0
+
     async def recv(self):
         frame = await self.track.recv()
         frame = self.resampler.resample(frame)[0]
@@ -83,11 +90,31 @@ class AudioTrack(MediaStreamTrack):
             self.buffer = frame_array
 
         if not speech_prob is None:
-            if speech_prob > 0.5:
-                print(
-                    # self.buffer.shape,
-                    f"speech_prob={speech_prob}",
-                )
+            is_speech = speech_prob >= 0.4
+            # print(f"speech_prob={speech_prob}")
+            if is_speech:
+                print(f"speech_prob={speech_prob}")
+                self.is_activated_amount += 1
+                if (
+                    self.is_activated_amount >= self.is_activated_threshhold
+                    and not self.is_activated
+                ):
+                    self.is_activated = True
+                    print("activated")
+                    self.segments = []
+
+            self.segments.append(int(is_speech))
+            self.segments = self.segments[-self.segments_amount :]
+
+            if (
+                np.mean(self.segments) <= 0.4
+                and self.is_activated
+                and len(self.segments) == self.segments_amount
+            ):
+                print("Let's Speech to text!")
+                self.is_activated_amount = 0
+                self.is_activated = False
+                self.segments = []
 
         return frame
 
