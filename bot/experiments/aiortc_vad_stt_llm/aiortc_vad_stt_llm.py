@@ -29,6 +29,7 @@ pcs = set()
 relay = MediaRelay()
 import time
 from bot.speech_recognition import SpeechRecognitionV2, SpeechRecognition
+from bot.text_generation import llm_chat_v1
 from aiortc.contrib.signaling import create_signaling
 
 speech_recognition = SpeechRecognitionV2()
@@ -112,7 +113,7 @@ class AudioTrack(MediaStreamTrack):
                 is_speech = speech_prob >= 0.4
                 # print(f"speech_prob={speech_prob}")
                 if is_speech and not self.is_activated:
-                    # print(f"speech_prob={speech_prob}")
+                    print(f"speech_prob={speech_prob}")
 
                     self.is_activated_amount += 1
                     self.silence_segments_amount = 0
@@ -161,7 +162,7 @@ class AudioTrack(MediaStreamTrack):
 
                 self.segments.append(int(is_speech))
                 self.segments = self.segments[-self.segments_amount :]
-                print(speech_prob, np.mean(self.segments), len(self.segments))
+                print(np.mean(self.segments), len(self.segments))
 
                 if (
                     np.mean(self.segments) <= 0.4
@@ -174,6 +175,7 @@ class AudioTrack(MediaStreamTrack):
                     self.segments = []
                     self.is_sst_state = True
                     self.silence_segments = []
+                    # не работает 
                     # asyncio.create_task(
                     #     asyncio.to_thread(self.extract_text),
                     # )
@@ -187,11 +189,13 @@ class AudioTrack(MediaStreamTrack):
     def extract_text(self):
         print("Extract text")
         # print(self.non_silent_segments)
-        text = self.speech_recognition.generate(
+        speech_rec_text = self.speech_recognition.generate(
             y=self.non_silent_segments,
             resample=False,
         )
-        print(text)
+        print(speech_rec_text)
+        llm_text = llm_chat_v1(user_text=speech_rec_text)
+        result = f"Распознанный текст: {speech_rec_text}\n\nСгенерированный текст:\n{llm_text}"
         # аудио дрожит когда пытаюсь его проигрывать
         # не знаю почему. вероятно что-то теряется в таком пайплайне
         sf.write(
@@ -200,7 +204,7 @@ class AudioTrack(MediaStreamTrack):
             samplerate=self.sampling_rate,
         )
         self.non_silent_segments = torch.tensor([], dtype=torch.float32)
-        self.datachannel.send(text)
+        self.datachannel.send(result)
         self.is_sst_state = False
 
 
