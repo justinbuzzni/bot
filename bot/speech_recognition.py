@@ -13,7 +13,12 @@ class SpeechRecognition(ABC):
         pass
 
     @abstractmethod
-    def generate(self, y: np.array, sampling_rate: int):
+    def generate(
+        self,
+        y: np.array,
+        sampling_rate: int = None,
+        resample: bool = True,
+    ):
         pass
 
 
@@ -66,7 +71,12 @@ class SpeechRecognitionV1(SpeechRecognition):
 
         self.model = speech_recognition
 
-    def generate(self, y: np.array, sampling_rate: int):
+    def generate(
+        self,
+        y: np.array,
+        sampling_rate: int = None,
+        resample: bool = True,
+    ):
         result = self.model({"sampling_rate": sampling_rate, "raw": y})
         speech_text = result["text"]
         return speech_text
@@ -116,12 +126,19 @@ class SpeechRecognitionV2(SpeechRecognition):
 
         self.model = speech_recognition
 
-    def generate(self, y: np.array, sampling_rate: int):
-        data_16k = librosa.resample(
-            y=y,
-            orig_sr=sampling_rate,
-            target_sr=self.sampling_rate,
-        )
+    def generate(
+        self,
+        y: np.array,
+        sampling_rate: int = None,
+        resample: bool = True,
+    ):
+        data_16k = y
+        if resample:
+            data_16k = librosa.resample(
+                y=data_16k,
+                orig_sr=sampling_rate,
+                target_sr=self.sampling_rate,
+            )
 
         speech_text = self.model.transcribe(
             np.array(data_16k, dtype=np.float32),

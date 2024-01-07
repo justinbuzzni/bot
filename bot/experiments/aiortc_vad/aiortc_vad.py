@@ -22,6 +22,8 @@ logger = logging.getLogger("pc")
 pcs = set()
 relay = MediaRelay()
 import time
+import librosa
+import torchaudio
 
 
 class AudioTrack(MediaStreamTrack):
@@ -55,45 +57,76 @@ class AudioTrack(MediaStreamTrack):
             layout="mono",
             rate=self.sampling_rate,
         )
-        print(self.resampler)
+        self.torch_resampler = torchaudio.transforms.Resample(
+            48_000,
+            16_000,
+        )
         self.buffer = torch.tensor([], dtype=torch.float32)
 
         self.segments = []
-        self.segments_amount = 100
+        self.segments_amount = 80
         self.is_activated = False
         self.is_activated_threshhold = 5
         self.is_activated_amount = 0
 
     async def recv(self):
         frame = await self.track.recv()
-        frame = self.resampler.resample(frame)[0]
-        frame_array = frame.to_ndarray()
-        frame_array = frame_array[0].astype(np.float32)
+        # print(frame.to_ndarray()[0].shape, frame.rate)
+        # ---- RESAMPLING NOT WORKING FROM 3rd party packages ----
+        # frame_array = frame.to_ndarray().astype(np.float32)
+        # frame_array = frame_array[0]
+        # # frame_array = (frame_array[:960] + frame_array[960:]) / 2
+        # frame_array = librosa.resample(
+        #     y=frame_array,
+        #     orig_sr=frame.rate,
+        #     target_sr=self.sampling_rate,
+        # )
+        # print(frame_array)
+        # frame_array = (
+        #     self.torch_resampler(
+        #         torch.tensor(
+        #             frame.to_ndarray()[0].astype(np.float32),
+        #             # frame.to_ndarray()[0][:960].astype(np.float32),
+        #             dtype=torch.float32,
+        #         )
+        #     )
+        #     .squeeze()
+        #     .numpy()
+        # )
+        # ---- RESAMPLING NOT WORKING ----
 
+        # ---- RESAMPLING IS WORKING ----
+        frame = self.resampler.resample(frame)[0]
+        frame_array = frame.to_ndarray()[0]
         # s16 (signed integer 16-bit number) can store numbers in range -32 768...32 767.
         frame_array = torch.tensor(frame_array, dtype=torch.float32) / 32_767
+        # frame_array = torch.tensor(frame_array, dtype=torch.float32)
+        # ---- RESAMPLING IS WORKING ----
+        # print(frame_array.shape)
         speech_prob = None
-        if self.buffer.shape[0] < 304 * 2:
-            self.buffer = torch.cat(
-                [
-                    self.buffer,
-                    frame_array,
-                ]
-            )
-        else:
-            # print(self.buffer.shape)
+        self.buffer = torch.cat(
+            [
+                self.buffer,
+                frame_array,
+            ]
+        )
+        # if self.buffer.shape[0] < 304 * 2:
+        if self.buffer.shape[0] >= frame_array.shape[0] * 4:
             speech_prob = self.vad_model(
                 self.buffer,
                 self.sampling_rate,
             ).item()
 
-            self.buffer = frame_array
+            self.buffer = torch.tensor(
+                [],
+                dtype=torch.float32,
+            )
 
         if not speech_prob is None:
             is_speech = speech_prob >= 0.4
-            # print(f"speech_prob={speech_prob}")
+            print(f"speech_prob={speech_prob}")
             if is_speech:
-                print(f"speech_prob={speech_prob}")
+                # print(f"speech_prob={speech_prob}")
                 self.is_activated_amount += 1
                 if (
                     self.is_activated_amount >= self.is_activated_threshhold
