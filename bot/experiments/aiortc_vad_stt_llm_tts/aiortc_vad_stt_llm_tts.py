@@ -30,9 +30,13 @@ relay = MediaRelay()
 import time
 from bot.speech_recognition import SpeechRecognitionV2, SpeechRecognition
 from bot.text_generation import llm_chat_v1
-from aiortc.contrib.signaling import create_signaling
+from bot.speech_generation import (
+    SpeechGenerationV2,
+)
+import uuid
 
 speech_recognition = SpeechRecognitionV2()
+speech_generation = SpeechGenerationV2()
 
 
 class AudioTrack(MediaStreamTrack):
@@ -199,10 +203,24 @@ class AudioTrack(MediaStreamTrack):
         # аудио дрожит когда пытаюсь его проигрывать
         # не знаю почему. вероятно что-то теряется в таком пайплайне
         sf.write(
-            "bot/experiments/aiortc_vad_stt_llm/temp_speech.wav",
+            "bot/experiments/aiortc_vad_stt_llm_tts/temp_speech.wav",
             data=self.non_silent_segments,
             samplerate=self.sampling_rate,
         )
+        sample_rate, all_speech = speech_generation.generate(
+            text=llm_text,
+        )
+        temp_audio_name = str(uuid.uuid4())
+        # temp_audio_path = f"bot/experiments/aiortc_vad_stt_llm_tts/{temp_audio_name}.wav"
+        temp_audio_path = f"bot/experiments/aiortc_vad_stt_llm_tts/temp_audio_name.wav"
+        sf.write(
+            temp_audio_path,
+            data=all_speech,
+            samplerate=sample_rate,
+        )
+        player = MediaPlayer(temp_audio_path)
+        self.peer_connection.addTrack(player.audio)
+        # player._start()
         self.non_silent_segments = torch.tensor([], dtype=torch.float32)
         self.datachannel.send(result)
         self.is_sst_state = False
@@ -292,6 +310,12 @@ async def offer(request):
     # send answer
     answer = await pc.createAnswer()
     await pc.setLocalDescription(answer)
+    player = MediaPlayer(
+        "bot/experiments/aiortc_audio_simple_demo/demo2.mp3",
+        loop=True,
+    )
+    pc.addTrack(player.audio)
+    # pc.addTransceiver(player.audio)
 
     return web.Response(
         content_type="application/json",
