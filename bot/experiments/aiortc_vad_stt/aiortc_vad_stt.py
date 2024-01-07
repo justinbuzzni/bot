@@ -72,7 +72,7 @@ class AudioTrack(MediaStreamTrack):
             [],
             dtype=torch.float32,
         )
-        self.segments_amount = 300
+        self.segments_amount = 80
         self.is_activated = False
         self.is_activated_threshhold = 3
         self.is_activated_amount = 0
@@ -103,7 +103,7 @@ class AudioTrack(MediaStreamTrack):
                     frame_array,
                 ]
             )
-            if self.buffer.shape[0] >= 304 * 2:
+            if self.buffer.shape[0] >= frame_array.shape[0] * 4:
                 speech_prob = self.vad_model(
                     self.buffer,
                     self.sampling_rate,
@@ -166,7 +166,7 @@ class AudioTrack(MediaStreamTrack):
                 print(np.mean(self.segments))
 
                 if (
-                    np.mean(self.segments) <= 0.25
+                    np.mean(self.segments) <= 0.4
                     and self.is_activated
                     and len(self.segments) == self.segments_amount
                 ):

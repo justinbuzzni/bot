@@ -197,7 +197,7 @@ async def offer(request):
 
     @pc.on("track")
     def on_track(track):
-        log_info("Track %s received", track.kind)
+        log_info("Track %s received", track)
 
         if track.kind == "audio":
             model, utils = torch.hub.load(
