@@ -163,7 +163,7 @@ class AudioTrack(MediaStreamTrack):
 
                 self.segments.append(int(is_speech))
                 self.segments = self.segments[-self.segments_amount :]
-                print(np.mean(self.segments))
+                print(np.mean(self.segments), len(self.segments))
 
                 if (
                     np.mean(self.segments) <= 0.4

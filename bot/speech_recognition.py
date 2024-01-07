@@ -99,32 +99,25 @@ class SpeechRecognitionV2(SpeechRecognition):
         # (may reduce accuracy)
         compute_type = "int8"
 
-        # 1. Transcribe with original whisper (batched)
         speech_recognition = whisperx.load_model(
             "large-v3",
             device,
             compute_type=compute_type,
             vad_model=None,
         )
+        self.model = speech_recognition
 
         dataset = load_dataset(
             "distil-whisper/librispeech_long", "clean", split="validation"
         )
         sample = dataset[0]["audio"]
-        data_16k = librosa.resample(
+
+        result = self.generate(
             y=sample["array"],
-            orig_sr=sample["sampling_rate"],
-            target_sr=self.sampling_rate,
+            sampling_rate=sample["sampling_rate"],
+            resample=True,
         )
-
-        print(sample)
-        result = speech_recognition.transcribe(
-            np.array(data_16k, dtype=np.float32),
-            batch_size=2,
-        )
-        print(result["segments"][0]["text"])
-
-        self.model = speech_recognition
+        print(result)
 
     def generate(
         self,
@@ -145,7 +138,7 @@ class SpeechRecognitionV2(SpeechRecognition):
             batch_size=2,
         )
         if len(speech_text["segments"]) > 0:
-            speech_text = speech_text["segments"][0]["text"]
+            speech_text = " ".join([item["text"] for item in speech_text["segments"]])
         else:
             speech_text = ""
 
