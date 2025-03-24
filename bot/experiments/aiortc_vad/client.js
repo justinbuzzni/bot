@@ -6,7 +6,16 @@ var dc = null,
   dcInterval = null;
 
 function createPeerConnection() {
-  pc = new RTCPeerConnection();
+  var config = {
+    iceServers: [
+      {urls: ['stun:stun.l.google.com:19302']}
+    ],
+    // Limit ICE candidates to reduce SDP size
+    iceTransportPolicy: 'all',
+    iceCandidatePoolSize: 2
+  };
+  
+  pc = new RTCPeerConnection(config);
   console.log("new RTCPeerConnection", pc);
 
   pc.addEventListener(
@@ -88,14 +97,22 @@ function negotiate() {
             }
           }
           pc.addEventListener("icegatheringstatechange", checkState);
+          
+          // Set a timeout to resolve anyway after 2 seconds
+          // This helps prevent waiting indefinitely for ICE gathering
+          setTimeout(function() {
+            pc.removeEventListener("icegatheringstatechange", checkState);
+            resolve();
+          }, 2000);
         }
       });
     })
     .then(function () {
       var offer = pc.localDescription;
+      console.log("SDP size:", JSON.stringify(offer).length, "bytes");
 
       // отправка SDP
-      return fetch("/offer", {
+      return fetch("http://localhost:8080/offer", {
         body: JSON.stringify({
           sdp: offer.sdp,
           type: offer.type,
@@ -105,16 +122,22 @@ function negotiate() {
           "Content-Type": "application/json",
         },
         method: "POST",
+        credentials: "include",
+        mode: "cors"
       });
     })
     .then(function (response) {
+      if (!response.ok) {
+        throw new Error('HTTP error, status = ' + response.status);
+      }
       return response.json();
     })
     .then(function (answer) {
       return pc.setRemoteDescription(answer);
     })
     .catch(function (e) {
-      alert(e);
+      console.error("Negotiation error:", e);
+      alert("Connection error: " + e);
     });
 }
 
@@ -160,6 +183,14 @@ function start() {
   };
 
   if (constraints.audio || constraints.video) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const errorMsg = 'Browser API navigator.mediaDevices.getUserMedia not available';
+      alert(errorMsg);
+      console.error(errorMsg);
+      document.getElementById("stop").style.display = "inline-block";
+      return negotiate();
+    }
+    
     navigator.mediaDevices.getUserMedia(constraints).then(
       function (stream) {
         stream.getTracks().forEach(function (track) {
